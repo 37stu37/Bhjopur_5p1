@@ -6,8 +6,8 @@
 
 # Loading libraries and paths
 using Pkg
-cd("/Users/alexdunant/Documents/Github/SN_MH-methodology")
-Pkg.activate("./SN_MH_methodology")
+cd("C:\\Users\\nszf25\\Documents\\Github\\Bhjopur_5p1")
+Pkg.activate("./JL_Bhjopur_5p1")
 
 
 begin
@@ -16,34 +16,35 @@ begin
     using CSV
     using Shapefile
     using Distributions
-    using GMT
+    # using GMT
     using ProgressBars
     using Statistics
-    using PyCall
 end
 
 
 # path
-# server = "Y://_TEMP//Server_Gitdata"
-server = "/Volumes/Nepal/SajagNepal/003_GIS_data/_TEMP/Server_Gitdata"
-directory = joinpath(server, "SN_MH-methodology")
+server = "Y://_TEMP//Server_Gitdata"
+# server = "/Volumes/Nepal/SajagNepal/003_GIS_data/_TEMP/Server_Gitdata"
+directory = joinpath(server, "Bhojpur_Mw5.1")
 
 
 # data
-@time impact = CSV.read(joinpath(directory, "LS_impact_on_Buildings_NOCONN_It5000_2022-08-17.csv"), DataFrame)
-@time bldg = DataFrame(Shapefile.Table(joinpath(directory, "bldgs_preprocs_light_districts.shp")))
-# @time bldg = gmtread(joinpath(directory, "bldgs_preprocs_light_districts.shp"))
+gmf = CSV.read(joinpath(directory, "OQoutputs", "output-7-gmf_data-csv",  "gmf-data_12.csv"), header=3, DataFrame)
+sitemesh = CSV.read(joinpath(directory, "OQoutputs", "output-7-gmf_data-csv",  "sitemesh_12.csv"), DataFrame)
 
+# merge OQ output together
+OQ = leftjoin(sitemesh, gmf, on= :site_id)
+OQ = coalesce.(OQ, 0.0)
 
-
-
+# merge OQ outputs with the building dataset to do analysis
+b = DataFrame(Shapefile.Table(joinpath(directory, "shapefile", "bldgs_preprocs_E4.shp")))
+b = leftjoin(b, OQ, on = :su_id => :site_id)
 
 ################################## EARTHQUAKE IMPACT #############################
 
-
-
 # use JSON to read building types
-typo = @. JSON.parse(impact.constructi)
+typo = @. JSON.parse(b.constructi)
+
 
 # fragilities paramters per typologies1.90, 0.93
 
@@ -78,7 +79,8 @@ list_FRAGILITY = []
 # get the true mean
 μ_for_mean(m, μ) = log(m) - μ^2/2
 
-for (d, pga) in ProgressBar(zip(typo, impact.pga))
+
+for (d, pga) in ProgressBar(zip(typo, b.gmv_PGA))
 
     tmp = []
 
@@ -124,16 +126,12 @@ end
 
 
 # add result to impact (need to turn array of array in Matrix)
-@time r = convert(Array{Float64}, reduce(hcat, list_FRAGILITY))
-
-# Create dataFrame based on the gmtread
-# dfb = DataFrame(osm_id = map(x->x.attrib["osm_id"],bldg),district=map(x -> x.attrib["districts"],bldg),ORDER=1:length(bldg))
+r = convert(Array{Float64}, reduce(hcat, list_FRAGILITY))
 
 # add results to impact dataframe
-impact[!, :low_case] = r[1,:]
-impact[!, :mid_case] = r[2,:]
-impact[!, :high_case] = r[3,:]
-r = innerjoin(impact, bldg, on= :osm_id, makeunique=true)
+b[!, :low_case] = r[1,:]
+b[!, :mid_case] = r[2,:]
+b[!, :high_case] = r[3,:]
 
 # get number of impact per districts
 r_count = combine(groupby(r, :DISTRICT), [:low_case, :mid_case, :high_case] .=> sum)
