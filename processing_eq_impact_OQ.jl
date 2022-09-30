@@ -6,7 +6,8 @@
 
 # Loading libraries and paths
 using Pkg
-cd("C:\\Users\\nszf25\\Documents\\Github\\Bhjopur_5p1")
+cd("/Users/alexdunant/Documents/Github/Bhjopur_5p1")
+# cd("C:\\Users\\nszf25\\Documents\\Github\\Bhjopur_5p1")
 Pkg.activate("./JL_Bhjopur_5p1")
 
 
@@ -16,10 +17,10 @@ begin
     using CSV
     using Shapefile
     using Distributions
-    # using GMT
+    using GMT
     using ProgressBars
     using Statistics
-    using PyCall
+#     using PyCall
 end
 
 
