@@ -19,6 +19,7 @@ begin
     # using GMT
     using ProgressBars
     using Statistics
+    using PyCall
 end
 
 
@@ -135,39 +136,9 @@ b[!, :high_case] = r[3,:]
 
 # get number of impact per districts
 r_count = combine(groupby(r, :DISTRICT), [:low_case, :mid_case, :high_case] .=> sum)
-# Keep only existing districts
-r_count = r_count[completecases(r_count), :]
-
-# merge with Chaulagain et al
-chaulagain = CSV.read(joinpath(directory, "Bldg_collapse_Chaulagain_2018.csv"), DataFrame)
-transform!(chaulagain, Not(r"DISTRICT") => (+) => :total_damage)
-r_count = leftjoin(r_count, chaulagain[!, [:DISTRICT, :total_damage]], on="DISTRICT")
-
-# Get only the column present in Chaulagain
-r_count = r_count[completecases(r_count), :]
-r_count.actual_damage = convert(Array{Float64}, r_count.total_damage)
-
-# calculate coefficient of correlation
-coef = cor(r_count.mid_case_sum, r_count.actual_damage)
-println("coefficient correlation score of $(round(coef, digits=4))")
-
 
 # Plot
-begin
-    bar(1:length(r_count.DISTRICT), Matrix(r_count[!, [:high_case_sum, :actual_damage]]), width=0.9,
-        fill=["lightred", "p11"],
+bar(1:length(r_count.DISTRICT), Matrix(r_count[!, [:high_case_sum, :mid_case_sum, :low_case_sum]]), width=0.9,
+        fill=["lightred", "lightgreen", "lightblue"],
         yticks=Tuple([x for x in r_count.DISTRICT]),
         hbar=true)
-
-    bar!(1:length(r_count.DISTRICT), Matrix(r_count[!, [:mid_case_sum, :actual_damage]]), width=0.9,
-        fill=["lightgreen", "p11"],
-        yticks=Tuple([x for x in r_count.DISTRICT]),
-        hbar=true)
-
-    bar!(1:length(r_count.DISTRICT), Matrix(r_count[!, [:low_case_sum, :actual_damage]]), width=0.9,
-        fill=["lightblue", "p11"],
-        yticks=Tuple([x for x in r_count.DISTRICT]),
-        frame=(title="Severe impact to buildings", axes=:WSrt), hbar=true,
-        savefig=joinpath(pwd(), "bar_building_damage.png"),
-        show=true)
-end
