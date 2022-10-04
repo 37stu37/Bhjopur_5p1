@@ -146,16 +146,20 @@ bar(1:length(r_count.DISTRICT), Matrix(r_count[!, [:high_case_sum, :mid_case_sum
 
 # Map
 shp = gmtread(joinpath(directory, "OQoutputs/20", "r_countDISTRICTS_OQrun_20.shp"))
-hypocenter = gmtread(joinpath(directory, "OQoutputs/"))
-c = r_count[:, 2]
-D = r_count[:, 1]
-D = convert(Array{String}, D)
+epicenter = gmtread(joinpath(directory, "shapefile/5p1_Bhojpur_epicenter_pt.shp"))
 
-zvals = polygonlevels(shp, D, c, att="DISTRICT", nocase=true);
-C = makecpt(range=(0,300,10), inverse=true, cmap=:hot, alpha=50);
+begin
+    case_name = "high"
+    c = r_count[:, 4] #2 = low, 3 = mid, 4 = high
+    D = r_count[:, 1]
+    D = convert(Array{String}, D)
 
-# grdimage("@earth_relief_30s", region=(79,89,26,30.7), proj=:guess, shade=true) #figsize=10, 
-plot(shp, level=zvals, cmap=C, A=50, pen=0.5, region=(79,89,26,30.7), lw=0.1, proj=:guess)
-plot!()
-colorbar!(pos=(anchor=:MR,length=(7,0.4), offset=(.5,-0)), color=C,
-          axes=(annot=50,), show=true)
+    zvals = polygonlevels(shp, D, c, att="DISTRICT", nocase=true);
+    C = makecpt(range=(0,1000,10), inverse=true, cmap=:hot, alpha=50);
+
+
+    # grdimage("@earth_relief_30s", region=(79,89,26,30.7), proj=:guess, shade=true) #figsize=10, 
+    plot(shp, level=zvals, cmap=C, A=50, pen=0.5, region=(79,89,26,30.7), lw=0.1, title="5.1Mw Bhojpur $(case_name) case damage", proj=:Mercator)
+    plot!(epicenter, size=0.2, color="black", marker="cross", legend=(label="5.1Mw epicenter", pos=:TR, box=true))
+    colorbar!(pos=(anchor=:MR,length=(7,0.4), offset=(.5,-0)), color=C, axes=(annot=100,), savefig=joinpath(pwd(), "OQ_run20_damageMap_$(case_name)case.png"), show=true)
+end
