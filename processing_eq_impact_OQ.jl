@@ -6,8 +6,9 @@
 
 # Loading libraries and paths
 using Pkg
-cd("/Users/alexdunant/Documents/Github/Bhjopur_5p1")
+# cd("/Users/alexdunant/Documents/Github/Bhjopur_5p1")
 # cd("C:\\Users\\nszf25\\Documents\\Github\\Bhjopur_5p1")
+cd(pwd())
 Pkg.activate("./JL_Bhjopur_5p1")
 
 
@@ -17,7 +18,7 @@ begin
     using CSV
     using Shapefile
     using Distributions
-    using GMT
+    # using GMT
     using ProgressBars
     using Statistics
 #     using PyCall
@@ -30,17 +31,9 @@ server = "Y://_TEMP//Server_Gitdata"
 directory = joinpath(server, "Bhojpur_Mw5.1")
 
 
-# data
-gmf = CSV.read(joinpath(directory, "OQoutputs", "output-7-gmf_data-csv",  "gmf-data_12.csv"), header=3, DataFrame)
-sitemesh = CSV.read(joinpath(directory, "OQoutputs", "output-7-gmf_data-csv",  "sitemesh_12.csv"), DataFrame)
-
-# merge OQ output together
-OQ = leftjoin(sitemesh, gmf, on= :site_id)
-OQ = coalesce.(OQ, 0.0)
-
 # merge OQ outputs with the building dataset to do analysis
-b = DataFrame(Shapefile.Table(joinpath(directory, "shapefile", "bldgs_preprocs_E4.shp")))
-b = leftjoin(b, OQ, on = :su_id => :site_id)
+b = CSV.read(joinpath(directory, "OQoutputs", "20", "bldg_NN_OQrun_20_reprojectedUTM45.csv"), DataFrame)
+
 
 ################################## EARTHQUAKE IMPACT #############################
 
@@ -136,7 +129,7 @@ b[!, :mid_case] = r[2,:]
 b[!, :high_case] = r[3,:]
 
 # get number of impact per districts
-r_count = combine(groupby(r, :DISTRICT), [:low_case, :mid_case, :high_case] .=> sum)
+r_count = combine(groupby(b, :DISTRICT), [:low_case, :mid_case, :high_case] .=> sum)
 
 # Plot
 bar(1:length(r_count.DISTRICT), Matrix(r_count[!, [:high_case_sum, :mid_case_sum, :low_case_sum]]), width=0.9,
